@@ -18,7 +18,7 @@ const EmbedModal: React.FC<{
   onClose: () => void;
 }> = ({ id, onClose }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const intervalRef = useRef<ReturnType<typeof setInterval>>();
+  const intervalRef = useRef<ReturnType<typeof setInterval>>(null);
   const [oembed, setOembed] = useState<OEmbedResponse | null>(null);
   const dispatch = useAppDispatch();
 
@@ -115,5 +115,4 @@ const EmbedModal: React.FC<{
   );
 };
 
-// eslint-disable-next-line import/no-default-export
 export default EmbedModal;

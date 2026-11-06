@@ -1,3 +1,4 @@
+import type React from 'react';
 import { useCallback, useId, useMemo, useState } from 'react';
 
 import { FormattedMessage, useIntl } from 'react-intl';
@@ -21,13 +22,12 @@ import {
 } from 'flavours/glitch/components/form_fields';
 import { useComboboxItemProps } from 'flavours/glitch/components/form_fields/combobox_field';
 import {
-  ListItemContent,
-  ListItemWrapper,
-} from 'flavours/glitch/components/list_item';
+  LockupContent,
+  LockupWrapper,
+} from 'flavours/glitch/components/lockup';
 import {
   Article,
   ItemList,
-  Scrollable,
 } from 'flavours/glitch/components/scrollable_list/components';
 import { useAccount } from 'flavours/glitch/hooks/useAccount';
 import { useSearchAccounts } from 'flavours/glitch/hooks/useSearchAccounts';
@@ -88,11 +88,11 @@ const SuggestedAccountItem: React.FC<{ id: string }> = ({ id }) => {
 
   return (
     <li {...comboboxItemProps} className={classes.suggestion}>
-      <ListItemWrapper icon={<Avatar account={account} size={40} />}>
-        <ListItemContent subtitle={handle}>
+      <LockupWrapper icon={<Avatar account={account} size={40} />}>
+        <LockupContent subtitle={handle}>
           <DisplayName account={account} variant='simple' />
-        </ListItemContent>
-      </ListItemWrapper>
+        </LockupContent>
+      </LockupWrapper>
     </li>
   );
 };
@@ -167,11 +167,11 @@ const renderGroupTitle = (groupKey: GroupKey, titleId: string) => {
 
   return (
     <li role='presentation'>
-      <ListItemWrapper className={classes.suggestionGroup}>
-        <ListItemContent id={titleId} subtitle={description}>
+      <LockupWrapper className={classes.suggestionGroup}>
+        <LockupContent id={titleId} subtitle={description}>
           {title}
-        </ListItemContent>
-      </ListItemWrapper>
+        </LockupContent>
+      </LockupWrapper>
     </li>
   );
 };
@@ -343,8 +343,8 @@ export const CollectionAccounts: React.FC<{
     [addAccountItem, instantAddAccountItem, isEditMode, resetAccounts],
   );
 
-  const handleSubmit = useCallback(
-    (e: React.FormEvent) => {
+  const handleSubmit: React.SubmitEventHandler = useCallback(
+    (e) => {
       e.preventDefault();
 
       if (!id) {
@@ -420,43 +420,42 @@ export const CollectionAccounts: React.FC<{
             </AccountsHeadingElement>
           )}
 
-          <Scrollable className={classes.scrollableWrapper}>
-            <ItemList
-              emptyMessage={
-                <EmptyState
-                  title={
-                    <FormattedMessage
-                      id='collections.accounts.empty_editor_title'
-                      defaultMessage='No one is in this collection yet'
-                    />
-                  }
-                  message={
-                    <FormattedMessage
-                      id='collections.accounts.empty_description'
-                      defaultMessage='Add up to {count} accounts'
-                      values={{
-                        count: MAX_COLLECTION_ACCOUNT_COUNT,
-                      }}
-                    />
-                  }
-                />
-              }
-            >
-              {editorItems.map(({ account_id, state }, index) => (
-                <Article
-                  key={account_id}
-                  aria-posinset={index}
-                  aria-setsize={editorItems.length}
-                >
-                  <AddedAccountItem
-                    accountId={account_id}
-                    pending={state === 'pending'}
-                    onRemove={handleRemoveAccountItem}
+          <ItemList
+            className={classes.accountList}
+            emptyMessage={
+              <EmptyState
+                title={
+                  <FormattedMessage
+                    id='collections.accounts.empty_editor_title'
+                    defaultMessage='No one is in this collection yet'
                   />
-                </Article>
-              ))}
-            </ItemList>
-          </Scrollable>
+                }
+                message={
+                  <FormattedMessage
+                    id='collections.accounts.empty_description'
+                    defaultMessage='Add up to {count} accounts'
+                    values={{
+                      count: MAX_COLLECTION_ACCOUNT_COUNT,
+                    }}
+                  />
+                }
+              />
+            }
+          >
+            {editorItems.map(({ account_id, state }, index) => (
+              <Article
+                key={account_id}
+                aria-posinset={index}
+                aria-setsize={editorItems.length}
+              >
+                <AddedAccountItem
+                  accountId={account_id}
+                  pending={state === 'pending'}
+                  onRemove={handleRemoveAccountItem}
+                />
+              </Article>
+            ))}
+          </ItemList>
         </div>
       </FormStack>
       {!isEditMode && hasItems && (

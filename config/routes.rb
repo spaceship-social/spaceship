@@ -124,7 +124,7 @@ Rails.application.routes.draw do
   end
 
   scope path: 'ap', as: 'ap' do
-    resources :accounts, path: 'users', only: [:show], param: :id, concerns: :account_resources do
+    resources :accounts, path: 'users', only: [:show], param: :id, concerns: :account_resources, constraints: { id: /-?\d+/ } do
       resources :collections, only: [:show], constraints: { id: /\d+/ }
       resources :collection_items, only: [:show]
       resources :feature_authorizations, only: [:show], module: :activitypub
@@ -176,7 +176,7 @@ Rails.application.routes.draw do
     get '/@:account_username/wrapstodon/:year/:share_key', to: 'wrapstodon#show', as: :public_wrapstodon
   end
 
-  get '/@:username_with_domain/(*any)', to: 'home#index', constraints: { username_with_domain: %r{([^/])+?} }, as: :account_with_domain, format: false
+  get '/@:username_with_domain/(*any)', to: 'remote_accounts#index', constraints: { username_with_domain: %r{([^/])+?} }, as: :account_with_domain, format: false
   get '/settings', to: redirect('/settings/profile')
 
   draw(:settings)

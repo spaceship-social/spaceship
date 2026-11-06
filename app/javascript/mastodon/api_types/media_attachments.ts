@@ -7,7 +7,7 @@ export type MediaAttachmentType =
   | 'unknown'
   | 'audio';
 
-interface BaseApiMediaAttachmentJSON {
+export interface BaseApiMediaAttachmentJSON {
   id: string;
   type: MediaAttachmentType;
   url: string;
@@ -19,47 +19,46 @@ interface BaseApiMediaAttachmentJSON {
   blurhash: string;
 }
 
-interface ApiImageAttachmentJSON extends BaseApiMediaAttachmentJSON {
+export interface ApiImageAttachmentJSON extends BaseApiMediaAttachmentJSON {
   type: 'image';
   meta: {
     original: ApiImageAttachmentMetaJSON;
     small: ApiImageAttachmentMetaJSON;
+    focus?: ApiFocusAttachmentMetaJSON;
   };
 }
 
-interface ApiAudioAttachmentJSON extends BaseApiMediaAttachmentJSON {
+export interface ApiAudioAttachmentJSON extends BaseApiMediaAttachmentJSON {
   type: 'audio';
   meta: {
-    colors: ApiColorsAttachmentMetaJSON;
+    colors?: ApiColorsAttachmentMetaJSON;
     original: ApiVideoAttachmentMetaJSON;
     small: ApiImageAttachmentMetaJSON;
   };
 }
 
-interface ApiVideoAttachmentJSON extends BaseApiMediaAttachmentJSON {
+export interface ApiVideoAttachmentJSON extends BaseApiMediaAttachmentJSON {
   type: 'video';
   meta: {
-    colors: ApiColorsAttachmentMetaJSON;
+    colors?: ApiColorsAttachmentMetaJSON;
     original: ApiVideoAttachmentMetaJSON;
     small: ApiImageAttachmentMetaJSON;
-    focus: {
-      x: number;
-      y: number;
-    };
+    focus?: ApiFocusAttachmentMetaJSON;
   };
 }
 
-interface ApiGifvAttachmentJSON extends BaseApiMediaAttachmentJSON {
+export interface ApiGifvAttachmentJSON extends BaseApiMediaAttachmentJSON {
   type: 'gifv';
   meta: {
     original: ApiVideoAttachmentMetaJSON;
     small: ApiImageAttachmentMetaJSON;
+    focus?: ApiFocusAttachmentMetaJSON;
   };
 }
 
-interface ApiUnknownAttachmentJSON extends BaseApiMediaAttachmentJSON {
+export interface ApiUnknownAttachmentJSON extends BaseApiMediaAttachmentJSON {
   type: 'unknown';
-  meta: unknown;
+  meta: Record<string, unknown>;
 }
 
 export type ApiMediaAttachmentJSON =
@@ -88,4 +87,9 @@ export interface ApiColorsAttachmentMetaJSON {
   background: string;
   foreground: string;
   accent: string;
+}
+
+export interface ApiFocusAttachmentMetaJSON {
+  x: number;
+  y: number;
 }

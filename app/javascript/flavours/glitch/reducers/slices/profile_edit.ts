@@ -1,5 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 
+import type { CamelCase } from 'type-fest';
+
 import { fetchAccount } from '@/flavours/glitch/actions/accounts';
 import {
   apiDeleteFeaturedTag,
@@ -26,13 +28,14 @@ import {
   createDataLoadingThunk,
 } from '@/flavours/glitch/store/typed_functions';
 import { hashObjectArray } from '@/flavours/glitch/utils/hash';
-import type { SnakeToCamelCase } from '@/flavours/glitch/utils/types';
 
 type ProfileData = {
-  [Key in keyof Omit<
-    ApiProfileJSON,
-    'note' | 'fields' | 'featured_tags'
-  > as SnakeToCamelCase<Key>]: ApiProfileJSON[Key];
+  [
+    Key in keyof Omit<
+      ApiProfileJSON,
+      'note' | 'fields' | 'featured_tags'
+    > as CamelCase<Key>
+  ]: ApiProfileJSON[Key];
 } & {
   bio: ApiProfileJSON['note'];
   fields: FieldData[];
@@ -42,10 +45,9 @@ type ProfileData = {
 export type FieldData = ApiAccountFieldJSON & { id: string };
 
 export type TagData = {
-  [Key in keyof Omit<
-    ApiFeaturedTagJSON,
-    'statuses_count'
-  > as SnakeToCamelCase<Key>]: ApiFeaturedTagJSON[Key];
+  [
+    Key in keyof Omit<ApiFeaturedTagJSON, 'statuses_count'> as CamelCase<Key>
+  ]: ApiFeaturedTagJSON[Key];
 } & {
   statusesCount: number;
 };

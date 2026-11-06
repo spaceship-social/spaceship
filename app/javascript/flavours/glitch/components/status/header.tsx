@@ -1,123 +1,145 @@
-import type { FC, HTMLAttributes, MouseEventHandler, ReactNode } from 'react';
+import { useId } from 'react';
 
-import { defineMessage, useIntl } from 'react-intl';
+import { FormattedMessage } from 'react-intl';
 
 import classNames from 'classnames';
+import { Link } from 'react-router-dom';
 
-import { isStatusVisibility } from '@/flavours/glitch/api_types/statuses';
-import type { Account } from '@/flavours/glitch/models/account';
-import type { Status } from '@/flavours/glitch/models/status';
+import { useAccount } from '@/flavours/glitch/hooks/useAccount';
+import { useCurrentAccountId } from '@/flavours/glitch/hooks/useAccountId';
+import type { AccountStatusShape } from '@/flavours/glitch/models/status';
 
 import { Avatar } from '../avatar';
-import { AvatarOverlay } from '../avatar_overlay';
-import type { DisplayNameProps } from '../display_name';
-import { LinkedDisplayName } from '../display_name';
-import { VisibilityIcon } from '../visibility_icon';
+import { DisplayName } from '../display_name';
+import { useAccountHandle } from '../display_name/default';
+import { RelativeTimestamp } from '../relative_timestamp';
+import { Skeleton } from '../skeleton';
 
-export interface StatusHeaderProps {
-  status: Status;
-  account?: Account;
-  avatarSize?: number;
-  contentBeforeDate?: ReactNode;
-  contentAfterDate?: ReactNode;
-  wrapperProps?: HTMLAttributes<HTMLDivElement>;
-  displayNameProps?: DisplayNameProps;
-  onHeaderClick?: MouseEventHandler<HTMLDivElement>;
+import classes from './header.module.scss';
+import { statusLink } from './utils';
+
+interface StatusRedesignHeaderProps {
+  status: Pick<
+    AccountStatusShape,
+    'id' | 'account' | 'created_at' | 'visibility' | 'mentions'
+  >;
+  children?: React.ReactNode;
   className?: string;
-  featured?: boolean;
 }
 
-export type StatusHeaderRenderFn = (args: StatusHeaderProps) => ReactNode;
-
-export const StatusHeader: FC<StatusHeaderProps> = ({
+export const StatusRedesignHeader: React.FC<StatusRedesignHeaderProps> = ({
   status,
-  account,
+  children,
   className,
-  avatarSize = 48,
-  wrapperProps,
-  contentBeforeDate,
-  contentAfterDate,
-  onHeaderClick,
 }) => {
-  const statusAccount = status.get('account') as Account | undefined;
+  const account = status.account;
+  const handle = useAccountHandle(account);
+  const currentAccountId = useCurrentAccountId();
+  const firstMentionAccount = useAccount(
+    status.mentions.find(({ id }) => id !== currentAccountId)?.id,
+  );
 
-  return (
-    /* eslint-disable jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */
-    <header
-      onClick={onHeaderClick}
-      onAuxClick={onHeaderClick}
-      {...wrapperProps}
-      className={classNames('status__info', className)}
-      /* eslint-enable jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */
+  const handleId = useId();
+  const accountLinkProps = {
+    to: {
+      pathname: `/@${account.acct}`,
+      state: { reference: 'status' },
+    },
+    title: `@${account.acct}`,
+    'data-id': account.id,
+    'data-hover-card-account': account.id,
+    'data-hover-card-reference': 'status',
+  };
+
+  let displayName = (
+    <Link
+      {...accountLinkProps}
+      className={classes.nameLink}
+      aria-describedby={handleId}
     >
-      <StatusDisplayName
-        statusAccount={statusAccount}
-        friendAccount={account}
-        avatarSize={avatarSize}
+      <DisplayName account={account} variant='noDomain' />
+    </Link>
+  );
+  if (status.visibility === 'private') {
+    displayName = (
+      <FormattedMessage
+        id='status.header.to_followers'
+        defaultMessage='{author} to Followers {count, plural, =0 {} one {+ # other} other {+ # others}}'
+        description='Count is # of other people mentioned in the post'
+        tagName='span'
+        values={{ author: displayName, count: status.mentions.length }}
       />
-
-      {contentBeforeDate}
-      {contentAfterDate}
-    </header>
-  );
-};
-
-export const StatusVisibility: FC<{ visibility: unknown }> = ({
-  visibility,
-}) => {
-  if (typeof visibility !== 'string' || !isStatusVisibility(visibility)) {
-    return null;
-  }
-  return (
-    <span className='status__visibility-icon'>
-      <VisibilityIcon visibility={visibility} />
-    </span>
-  );
-};
-
-const editMessage = defineMessage({
-  id: 'status.edited',
-  defaultMessage: 'Edited {date}',
-});
-
-export const StatusEditedAt: FC<{ editedAt: string }> = ({ editedAt }) => {
-  const intl = useIntl();
-  return (
-    <abbr
-      title={intl.formatMessage(editMessage, {
-        date: intl.formatDate(editedAt, {
-          year: 'numeric',
-          month: 'short',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-        }),
-      })}
-    >
-      {' '}
-      *
-    </abbr>
-  );
-};
-
-export const StatusDisplayName: FC<{
-  statusAccount?: Account;
-  friendAccount?: Account;
-  avatarSize: number;
-}> = ({ statusAccount, friendAccount, avatarSize }) => {
-  const AccountComponent = friendAccount ? AvatarOverlay : Avatar;
-  return (
-    <LinkedDisplayName
-      displayProps={{ account: statusAccount }}
-      className='status__display-name'
-    >
-      <div className='status__avatar'>
-        <AccountComponent
-          account={statusAccount}
-          friend={friendAccount}
-          size={avatarSize}
+    );
+  } else if (status.visibility === 'direct' && status.mentions.length > 0) {
+    if (status.account.id === currentAccountId && firstMentionAccount) {
+      displayName = (
+        <FormattedMessage
+          id='status.header.message_from_me'
+          defaultMessage='{author} to {name} {count, plural, =0 {} one {+ # other} other {+ # others}}'
+          description='DisplayName is the author, count is # of other people mentioned in the post'
+          tagName='span'
+          values={{
+            author: displayName,
+            name: (
+              <DisplayName account={firstMentionAccount} variant='simple' />
+            ),
+            // Minus two, as we're removing the current user as well.
+            count: Math.max(status.mentions.length - 2, 0),
+          }}
         />
+      );
+    } else {
+      displayName = (
+        <FormattedMessage
+          id='status.header.message_to_me'
+          defaultMessage='{author} to You {count, plural, =0 {} one {+ # other} other {+ # others}}'
+          description='DisplayName is the author, count is # of other people mentioned in the post'
+          tagName='span'
+          values={{ author: displayName, count: status.mentions.length - 1 }}
+        />
+      );
+    }
+  }
+
+  return (
+    <header className={classNames(className, classes.root)}>
+      <Link
+        {...accountLinkProps}
+        role='presentation'
+        tabIndex={-1}
+        className={classes.avatar}
+      >
+        <Avatar account={account} size={null} />
+      </Link>
+
+      <div>
+        <p className={classes.name}>
+          {displayName}
+          &bull;
+          <Link
+            to={{
+              pathname: statusLink(status),
+              state: { reference: 'status' },
+            }}
+            className={classes.date}
+          >
+            <RelativeTimestamp timestamp={status.created_at} />
+          </Link>
+        </p>
+
+        <p className={classes.handle}>
+          <Link
+            {...accountLinkProps}
+            role='presentation'
+            tabIndex={-1}
+            id={handleId}
+          >
+            {handle ?? <Skeleton width='7ch' />}
+          </Link>
+        </p>
       </div>
-    </LinkedDisplayName>
+
+      {children}
+    </header>
   );
 };

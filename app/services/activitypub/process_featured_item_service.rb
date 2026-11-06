@@ -10,16 +10,17 @@ class ActivityPub::ProcessFeaturedItemService
   def call(collection, uri_or_object, position: nil, request_id: nil)
     @collection = collection
     @request_id = request_id
-    @item_json = uri_or_object.is_a?(String) ? fetch_resource(uri_or_object, true) : uri_or_object
+    @item_json = uri_or_object.is_a?(String) ? fetch_resource(uri_or_object) : uri_or_object
     @actor_uri = value_or_id(@item_json['featuredObject'])
     @approval_uri = value_or_id(@item_json['featureAuthorization'])
     return if non_matching_uri_hosts?(@collection.uri, @item_json['id'])
     return if non_matching_actor_and_approval_uris?
     return if non_supported_object_type?
 
-    with_redis_lock("collection_item:#{@item_json['id']}") do
-      @collection_item = existing_item || pre_approved_item || new_item
+    @collection_item = existing_item || pre_approved_item || new_item
+    return if @collection_item.nil?
 
+    with_redis_lock("collection_item:#{@item_json['id']}") do
       @collection_item.position = position unless position.nil?
       @collection_item.update!(
         uri: @item_json['id'],
@@ -45,6 +46,8 @@ class ActivityPub::ProcessFeaturedItemService
   end
 
   def new_item
+    return if @collection.collection_items.count >= ActivityPub::ProcessFeaturedCollectionService::ITEMS_LIMIT
+
     @collection.collection_items.new(
       created_at: @item_json['published']
     )
@@ -66,8 +69,8 @@ class ActivityPub::ProcessFeaturedItemService
     return false if local_actor_uri?
     return false if Account.exists?(uri: @actor_uri)
 
-    object_json = fetch_resource(@actor_uri, true)
-    (Array(object_json['type']) & ActivityPub::FetchRemoteActorService::SUPPORTED_TYPES).empty?
+    object_json = fetch_resource(@actor_uri, raise_on_error: :temporary)
+    object_json.nil? || (as_array(object_json['type']) & ActivityPub::FetchRemoteActorService::SUPPORTED_TYPES).empty?
   end
 
   def verify_authorization!
